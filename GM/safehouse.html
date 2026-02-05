@@ -1,0 +1,292 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Camorra – Safehouse Stash Tracker</title>
+<style>
+body {
+    background:#1e1e1e;
+    color:#f2f2f2;
+    font-family: Arial, sans-serif;
+    margin:0;
+    padding:20px;
+}
+h1 {
+    text-align:center;
+}
+button {
+    background:#444;
+    color:white;
+    border:none;
+    padding:6px 10px;
+    margin:4px 0;
+    cursor:pointer;
+}
+button:hover {
+    background:#666;
+}
+input, select {
+    background:#2b2b2b;
+    color:white;
+    border:1px solid #555;
+    padding:4px;
+}
+.safehouse {
+    border:1px solid #555;
+    padding:10px;
+    margin:15px 0;
+}
+.safehouse-header {
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+.items {
+    margin-top:10px;
+}
+.item-row {
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap:6px;
+    margin-bottom:6px;
+}
+.small {
+    width:100%;
+}
+</style>
+</head>
+<body>
+
+<h1>Safehouse Stash</h1>
+
+<div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:10px;">
+  <span id="authStatus" style="opacity:.9;">Not signed in</span>
+  <button id="loginBtn" type="button">Sign in</button>
+  <button id="logoutBtn" type="button" style="display:none;">Sign out</button>
+</div>
+
+<div style="text-align:center;margin-bottom:10px;">
+  <button id="saveSafehouseBtn" type="button" style="display:none;">Save Safehouse (GM)</button>
+  <span id="safehouseMsg" style="display:block;margin-top:6px;opacity:.85;"></span>
+</div>
+
+
+<button id="addSafehouseBtn" onclick="addSafehouse()">+ Add Safehouse</button>
+
+<div id="safehouses"></div>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc }
+    from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhgugCDO0oL37kpEuTwoNVG4CXGSMUXts",
+    authDomain: "camorra-f8017.firebaseapp.com",
+    projectId: "camorra-f8017",
+    storageBucket: "camorra-f8017.firebasestorage.app",
+    messagingSenderId: "678108883835",
+    appId: "1:678108883835:web:47320f155842778fcfebde",
+    measurementId: "G-TLZ0R1SM9M"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.__camorraSafehouseFB = { auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc };
+</script>
+
+<script>
+
+const FB = window.__camorraSafehouseFB;
+
+// TODO: set this to YOUR Google account email that should have write access.
+const GM_EMAIL = "samhdhobson@gmail.com";
+
+let currentUser = null;
+let isGM = false;
+
+function $(id){ return document.getElementById(id); }
+
+function setMsg(t){ const el=$("safehouseMsg"); if(el) el.textContent = t || ""; }
+
+function setEditingEnabled(enabled){
+  // disable all inputs and buttons except auth buttons
+  document.querySelectorAll("#safehouses input, #safehouses select").forEach(el => el.disabled = !enabled);
+  document.querySelectorAll("#safehouses button").forEach(el => el.disabled = !enabled);
+  const addBtn = $("addSafehouseBtn");
+  if(addBtn) addBtn.disabled = !enabled;
+}
+
+async function loadSafehouse(){
+  if(!currentUser){
+    setMsg("Sign in to view the safehouse.");
+    document.getElementById("safehouses").innerHTML = "";
+    setEditingEnabled(false);
+    return;
+  }
+  try{
+    const ref = FB.doc(FB.db, "safehouse", "main");
+    const snap = await FB.getDoc(ref);
+    if(!snap.exists()){
+      setMsg(isGM ? "No safehouse yet. Create one and click “Save Safehouse (GM)”.": "No safehouse yet.");
+      document.getElementById("safehouses").innerHTML = "";
+      setEditingEnabled(isGM);
+      return;
+    }
+    const data = snap.data();
+    renderSafehouseFromData(data?.data || []);
+    setMsg(isGM ? "Loaded. You can edit and save." : "Loaded (view-only).");
+    setEditingEnabled(isGM);
+  }catch(err){
+    console.error(err);
+    setMsg("Couldn’t load safehouse. Check Firestore rules.");
+  }
+}
+
+function collectSafehouseData(){
+  const safehouses = [];
+  document.querySelectorAll("#safehouses .safehouse").forEach(sh => {
+    const headerInputs = sh.querySelectorAll(".safehouse-header input");
+    const name = headerInputs[0]?.value || "";
+    const location = headerInputs[1]?.value || "";
+    const items = [];
+    sh.querySelectorAll(".item-list .item-row").forEach(r => {
+      const inputs = r.querySelectorAll("input");
+      items.push({
+        name: inputs[0]?.value || "",
+        qty: inputs[1]?.value || "",
+        notes: inputs[2]?.value || ""
+      });
+    });
+    safehouses.push({ name, location, items });
+  });
+  return safehouses;
+}
+
+function renderSafehouseFromData(data){
+  const root = document.getElementById("safehouses");
+  root.innerHTML = "";
+  for(const sh of data){
+    addSafehouse();
+    const node = root.lastElementChild;
+    const headerInputs = node.querySelectorAll(".safehouse-header input");
+    if(headerInputs[0]) headerInputs[0].value = sh.name || "";
+    if(headerInputs[1]) headerInputs[1].value = sh.location || "";
+
+    const list = node.querySelector(".item-list");
+    list.innerHTML = "";
+    for(const it of (sh.items || [])){
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML = `
+        <input placeholder="Item name" value="${escapeHtml(it.name||"")}">
+        <input placeholder="Qty" value="${escapeHtml(it.qty||"")}">
+        <input placeholder="Notes" value="${escapeHtml(it.notes||"")}">
+        <button onclick="this.parentElement.remove()">X</button>
+      `;
+      list.appendChild(row);
+    }
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function saveSafehouse(){
+  if(!currentUser) return alert("Sign in first.");
+  if(!isGM) return alert("Only the GM account can save the safehouse.");
+  try{
+    const ref = FB.doc(FB.db, "safehouse", "main");
+    await FB.setDoc(ref, { updatedAt: Date.now(), data: collectSafehouseData() }, { merge: true });
+    setMsg("Saved safehouse.");
+  }catch(err){
+    console.error(err);
+    alert("Save failed. Check Firestore rules.");
+  }
+}
+
+document.getElementById("saveSafehouseBtn")?.addEventListener("click", saveSafehouse);
+
+document.getElementById("loginBtn")?.addEventListener("click", async () => {
+  try{
+    const provider = new FB.GoogleAuthProvider();
+    await FB.signInWithPopup(FB.auth, provider);
+  }catch(err){
+    console.error(err);
+    alert("Sign-in failed. Make sure your Netlify domain is in Firebase Auth → Authorized domains.");
+  }
+});
+document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+  try{ await FB.signOut(FB.auth); }catch(e){ console.error(e); }
+});
+
+FB.onAuthStateChanged(FB.auth, (user) => {
+  currentUser = user || null;
+  isGM = !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === GM_EMAIL.toLowerCase());
+
+  const authEl = document.getElementById("authStatus");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const saveBtn = document.getElementById("saveSafehouseBtn");
+
+  if(currentUser){
+    authEl.textContent = `Signed in: ${currentUser.email || currentUser.uid}` + (isGM ? " (GM)" : "");
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "";
+    saveBtn.style.display = isGM ? "" : "none";
+  } else {
+    authEl.textContent = "Not signed in";
+    loginBtn.style.display = "";
+    logoutBtn.style.display = "none";
+    saveBtn.style.display = "none";
+  }
+  loadSafehouse();
+});
+
+function addSafehouse() {
+    const container = document.createElement('div');
+    container.className = 'safehouse';
+
+    container.innerHTML = `
+        <div class="safehouse-header">
+            <strong>Safehouse:</strong>
+            <input placeholder="Name" class="small">
+            <input placeholder="Location" class="small">
+            <button onclick="this.closest('.safehouse').remove()">Remove</button>
+        </div>
+
+        <div class="items">
+            <h4>Stash</h4>
+            <button onclick="addItem(this)">+ Add Item</button>
+            <div class="item-list"></div>
+        </div>
+    `;
+
+    document.getElementById('safehouses').appendChild(container);
+}
+
+function addItem(btn) {
+    const list = btn.nextElementSibling;
+    const row = document.createElement('div');
+    row.className = 'item-row';
+
+    row.innerHTML = `
+        <input placeholder="Item name">
+        <input placeholder="Qty">
+        <input placeholder="Notes">
+        <button onclick="this.parentElement.remove()">X</button>
+    `;
+
+    list.appendChild(row);
+}
+</script>
+
+</body>
+</html>
