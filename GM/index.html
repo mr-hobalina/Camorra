@@ -1,1 +1,108 @@
-<!-- placeholder -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camorra GM Tools</title>
+
+  <!-- If you have a shared stylesheet in /css/, this path is correct for a file inside /gm/ -->
+  <link rel="stylesheet" href="../css/main.css">
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: Arial, sans-serif; background:#121212; color:#fff; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px 16px 48px; }
+    .top-nav{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      padding:12px 14px; background:#1b1b1b; border-bottom:1px solid #2a2a2a;
+      position:sticky; top:0; z-index:50;
+    }
+    .top-nav a{
+      color:#fff; text-decoration:none; padding:8px 10px;
+      border:1px solid #2f2f2f; border-radius:8px; background:#232323;
+      font-weight:700; font-size:14px;
+    }
+    .top-nav a:hover{ background:#2b2b2b; }
+    h1{ margin:16px 0 8px; font-size:28px; }
+    .sub{ color:#cfcfcf; margin:0 0 18px; }
+    .grid{
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:14px; margin-top:18px;
+    }
+    .card{ border:1px solid #2f2f2f; background:#1b1b1b; border-radius:12px; padding:14px; }
+    .card h2{ margin:0 0 8px; font-size:18px; }
+    .card p{ margin:0 0 12px; color:#cfcfcf; line-height:1.35; font-size:14px; }
+    .btn{
+      display:inline-block; width:fit-content; color:#fff; text-decoration:none;
+      padding:10px 12px; border-radius:10px; border:1px solid #3a3a3a;
+      background:#232323; font-weight:800;
+    }
+    .btn:hover{ background:#2b2b2b; }
+    .small{ margin-top:22px; font-size:13px; color:#bdbdbd; }
+    code{ background:#222; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <!-- IMPORTANT: this file lives in /gm/, so root index is one folder up -->
+    <a href="../index.html">Home</a>
+    <!-- Codex lives in /pages/ (one folder up, then pages) -->
+    <a href="../pages/create_character.html">Codex</a>
+    <!-- GM hub (this page) -->
+    <a href="index.html">GM Tools</a>
+    <!-- Handy direct link to the character sheet if you want it here too -->
+    <a href="../Character-Sheet.html">Character Sheet</a>
+  </nav>
+
+  <div class="wrap">
+    <h1>Camorra GM Tools</h1>
+    <p class="sub">Quick launch for your session utilities. (Codex info lives in the player pages.)</p>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Initiative Tracker</h2>
+        <p>Track turn order with HP / Dodge / Grit and quick damage &amp; heal adjustments.</p>
+        <a class="btn" href="initiative.html">Open Initiative</a>
+      </div>
+
+      <div class="card">
+        <h2>Reputation Tracker</h2>
+        <p>Track faction + region reputation, Heat (0–5), and notes.</p>
+        <a class="btn" href="reputation.html">Open Reputation</a>
+      </div>
+
+      <div class="card">
+        <h2>Safehouse</h2>
+        <p>Manage crew safehouses, storage, and downtime notes.</p>
+        <a class="btn" href="safehouse.html">Open Safehouse</a>
+      </div>
+
+      <div class="card">
+        <h2>Table Roller</h2>
+        <p>Pick a table, roll the right die, and get an instant result.</p>
+        <a class="btn" href="table-roller.html">Open Table Roller</a>
+      </div>
+
+      <div class="card">
+        <h2>Lite VTT</h2>
+        <p>Background + grid + draggable tokens. Ping, status, notes. Built for smooth screen share.</p>
+        <a class="btn" href="vtt.html">Open VTT</a>
+      </div>
+    </div>
+
+    <div class="small">
+      <p><b>Expected filenames:</b> place these files inside <code>/gm/</code> (or update the links above):</p>
+      <ul>
+        <li><code>initiative.html</code></li>
+        <li><code>reputation.html</code></li>
+        <li><code>safehouse.html</code></li>
+        <li><code>table-roller.html</code></li>
+        <li><code>vtt.html</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- If you have a shared nav script, this path is correct from /gm/ -->
+  <script src="../js/nav.js" defer></script>
+</body>
+</html>
